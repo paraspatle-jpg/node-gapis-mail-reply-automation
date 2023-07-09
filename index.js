@@ -38,14 +38,19 @@ async function saveCredentials(client) {
 
 
 async function authorize() {
+    // loading token.json if the file exists.
     let client = await loadSavedCredentialsIfExist();
     if (client) {
         return client;
     }
+
+    // authenticating and assigning the requred scopes
     client = await authenticate({
         scopes: SCOPES,
         keyfilePath: CREDENTIALS_PATH,
     });
+
+    // storing the credentials in token.js in success
     if (client.credentials) {
         await saveCredentials(client);
     }
@@ -73,6 +78,7 @@ const sendMail = async (options, gmail, threadId) => {
     });
 
     console.log(data)
+    return data;
 };
 
 function randomNumber(min, max) {
@@ -82,14 +88,20 @@ function randomNumber(min, max) {
 
 async function listLabels(auth) {
     const gmail = google.gmail({ version: 'v1', auth });
+    // getting all the threads in first page
     const res = await gmail.users.threads.list({
         userId: 'me',
     });
+
+    // traversing through the threads
     res.data.threads.forEach(async ({ id }, index) => {
+        // getting individual thread
         const res1 = await gmail.users.threads.get({
             userId: 'me',
             id: id
         })
+
+        // getting threads without a reply
         if (res1.data.messages.filter(({ labelIds }) => labelIds.includes('SENT') || labelIds.includes('DRAFT')).length === 0) {
             const messageId = res1.data.messages[0].id
             const res2 = await gmail.users.messages.get({
@@ -121,6 +133,8 @@ async function listLabels(auth) {
     })
 
 }
+
+
 authorize().then(listLabels).catch(console.error)
 setInterval(() => authorize().then(listLabels).catch(console.error), randomNumber(50, 120) * 1000);
 
